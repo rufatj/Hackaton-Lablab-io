@@ -1,0 +1,713 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "IntelScout AI — Enterprise Competitor Radar",
+        "formDescription": "Enter a target company and specify your intelligence parameters to generate a live market intelligence report powered by Bright Data & GenAI.",
+        "formFields": {
+          "values": [
+            {
+              "fieldName": "target_company",
+              "fieldLabel": "Target Enterprise / Competitor",
+              "placeholder": "e.g., UiPath, HubSpot, Salesforce",
+              "requiredField": true
+            },
+            {
+              "fieldName": "intelligence_focus",
+              "fieldLabel": "Intelligence Focus",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Product Launches & Feature Updates"
+                  },
+                  {
+                    "option": "Pricing, Packaging & Monetization"
+                  },
+                  {
+                    "option": "Executive Leadership & Hiring Shifts  "
+                  },
+                  {
+                    "option": "Partnerships, Mergers & Acquisitions"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldName": "target_market",
+              "fieldLabel": "Target Market Location",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "United States (US) "
+                  },
+                  {
+                    "option": "European Union (EU)"
+                  },
+                  {
+                    "option": "United Kingdom (UK)"
+                  },
+                  {
+                    "option": "Global / Unrestricted"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldName": "analysis_persona",
+              "fieldLabel": "Analysis Persona / Depth",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Sales Enablement (Quick Attack Battlecard)"
+                  },
+                  {
+                    "option": "Executive Board (Deep Strategic Overview)"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.4,
+      "position": [
+        1920,
+        48
+      ],
+      "id": "293e829c-2ce2-4e08-bb01-f575ab7f1740",
+      "name": "On form submission",
+      "webhookId": "d05795e3-7fae-4d6f-a978-f6e8e160dc9a",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.brightdata.com/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"zone\": \"serp_api1rufat\",\n  \"url\": \"https://www.google.com/search?q={{ $json['company '] }}+{{ $json['market '] }}&hl=en&num=10\",\n  \"format\": \"raw\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        320,
+        752
+      ],
+      "id": "2f4f4ab9-e30a-4c13-8962-9c5359b648fe",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "yGhCCQNc11hC2Few",
+          "name": "Bearer Auth account"
+        },
+        "httpHeaderAuth": {
+          "id": "iuIgYHWk14OHrM6h",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        224
+      ],
+      "id": "da8adf0f-3c90-4244-9977-093efcd1fbf1",
+      "name": "Code in JavaScript",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=### USER STRATEGIC REQUEST\n- Target Company: {{ $('Edit Fields').item.json['company '] }}\n- Target Market: {{ $('Edit Fields').item.json['market '] }}\n- Primary Question/Context: {{ $('Edit Fields').item.json['context '] }}\n- Analysis Focus: {{ $('Edit Fields').item.json['focus '] }}\n- Research Depth: {{ $('Edit Fields').item.json.depth }}\n- Additional Keywords: {{ $('Edit Fields').item.json.extra_keywords }}\n- Company Profile: {{ $('Edit Fields').item.json.profile_company }}\n\n### RAW SEARCH DATA TO ANALYZE\n{{ JSON.stringify($json.organic) }}",
+        "options": {
+          "systemMessage": "You are an expert GTM competitive intelligence analyst.\n\nAnalyze the provided Bright Data SERP results and the user's strategic request.\n\nYou MUST return ONLY a valid JSON object. No markdown. No backticks. No text before or after. Just the raw JSON.\n\nUse this exact structure:\n{\n  \"report\": \"string with full report using \\\\n for newlines\",\n  \"sentiment\": 65,\n  \"opportunities\": [\"item 1\", \"item 2\", \"item 3\"],\n  \"risks\": [\"item 1\", \"item 2\", \"item 3\"],\n  \"signals_count\": 12\n}\n\nRules:\n- \"report\": Full analysis in English. Use \\\\n\\\\n between sections. Section titles in CAPS with emoji. No JSON inside report.\n- \"sentiment\": Integer 0-100. Calculate based on: brand strength (0-25) + market position (0-25) + growth signals (0-25) + risk level inverted (0-25). Be precise per query.\n- \"opportunities\": Array of 2-4 strings. Each string max 100 chars. Specific to THIS company and market.\n- \"risks\": Array of 2-4 strings. Each string max 100 chars. Specific to THIS company and market.\n- \"signals_count\": Total number of distinct data points found in Bright Data results.\n- Return NOTHING except the JSON object. No markdown fences."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        880,
+        736
+      ],
+      "id": "1fe3f4cf-c7a5-4bc1-9f1d-99aec3e5b767",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    \"report\": $json.report || \"No report generated\",\n    \"sentiment\": $json.sentiment || 0,\n    \"opportunities\": $json.opportunities || [],\n    \"risks\": $json.risks || [],\n    \"signals_count\": $json.signals_count || 0\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1424,
+        736
+      ],
+      "id": "3f482ecc-c2f7-476e-b6dd-7b776ab9f7c4",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "IntelScout AI — Live Market Intelligence Report",
+        "completionMessage": "### 🚀 Analysis Completed Successfully!\n\nBright Data collected live signals from the internet and processed them by Artificial Intelligence.\n\n*(When you install the AI ​​node in n8n in a few steps, the real report text will come here dynamically).*",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.4,
+      "position": [
+        2176,
+        48
+      ],
+      "id": "8fbad878-63d2-4c83-afbc-94428b719a26",
+      "name": "Form",
+      "webhookId": "4b7d7542-ae58-4a65-a4fc-3a83216503d1"
+    },
+    {
+      "parameters": {
+        "path": "intelscout",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -144,
+        240
+      ],
+      "id": "62b06386-422a-4692-bb98-68bcf1bc586c",
+      "name": "Webhook",
+      "webhookId": "1d5f6e05-04ed-4432-b8fc-d5ba07c34d08",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intelscout-api",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        1504
+      ],
+      "id": "40499681-034d-4fb8-8cc5-2e7b15ab9da7",
+      "name": "Webhook1",
+      "webhookId": "add2a04d-5116-40f1-a283-bd5c3ea19517",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1328,
+        224
+      ],
+      "id": "2a1b1ed0-316e-4205-9fd1-e9ee1de84393",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {
+          "topP": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        880,
+        976
+      ],
+      "id": "5f0a5f1e-bb0c-4183-8bf1-da14472a76bc",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5FG2flAO4UhdhfiO",
+          "name": "n8n-lablabai"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intellscout",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        752
+      ],
+      "id": "5eb6a76d-b91e-4a5d-b784-0d74ac8ef4f3",
+      "name": "Webhook2",
+      "webhookId": "0853afec-2562-47b9-8b01-b650c9f6de63"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aa836599-a9e0-458e-999a-4abf49d2935b",
+              "name": "company ",
+              "value": "={{ $json.body.company }}",
+              "type": "string"
+            },
+            {
+              "id": "16879057-7c89-4979-94a2-7b6b37c8627b",
+              "name": "market ",
+              "value": "={{ $json.body.market }}",
+              "type": "string"
+            },
+            {
+              "id": "9b478e99-f736-4461-bc60-88fe4d0ad570",
+              "name": "industry ",
+              "value": "={{ $json.body.industry }}",
+              "type": "string"
+            },
+            {
+              "id": "5302b73b-78de-435c-a166-0786ff89075f",
+              "name": "focus ",
+              "value": "={{ $json.body.focus }}",
+              "type": "string"
+            },
+            {
+              "id": "915df576-2ed8-4db1-8184-e71de4886d12",
+              "name": "context ",
+              "value": "={{ $json.body.context }}",
+              "type": "string"
+            },
+            {
+              "id": "53579d5a-f811-477d-9b3d-aee37c1f421c",
+              "name": "depth",
+              "value": "={{ $json.body.depth }}",
+              "type": "string"
+            },
+            {
+              "id": "8c0eef1e-91c4-468b-9f93-9e59dc47d116",
+              "name": "extra_keywords",
+              "value": "={{ $json.body.extra_keywords }}",
+              "type": "string"
+            },
+            {
+              "id": "605e0f65-492b-464e-a1be-65e61f52bdc1",
+              "name": "profile_company",
+              "value": "={{ $json.body.profile_company }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        752
+      ],
+      "id": "dc992050-56fe-49e4-b3bf-8145931e3c65",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Edit Fields').item.json.depth }}",
+                    "rightValue": "Quick",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "36f424e9-ec22-445c-90fd-66590cb533c3"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Quick"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "88e4355a-b98f-4c89-9a23-02445f72d419",
+                    "leftValue": "={{ $('Edit Fields').item.json.depth }}",
+                    "rightValue": "Standard",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Standard"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "b07db0b1-3aa6-4557-a1b9-6d9d206353ba",
+                    "leftValue": "={{ $('Edit Fields').item.json.depth }}",
+                    "rightValue": "Deep",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Deep"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        736
+      ],
+      "id": "5e81817c-c5d1-454e-8cca-7b791ff9c29a",
+      "name": "Switch",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.brightdata.com/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"zone\": \"serp_api1rufat\",\n  \"url\": \"https://www.google.com/search?q={{ $json['company '] }}+{{ $json['market '] }}&hl=en&num=2\",\n  \"format\": \"raw\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        320,
+        560
+      ],
+      "id": "c3b1b71d-67be-4d2f-a204-3beff3c15980",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "yGhCCQNc11hC2Few",
+          "name": "Bearer Auth account"
+        },
+        "httpHeaderAuth": {
+          "id": "iuIgYHWk14OHrM6h",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.brightdata.com/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"zone\": \"serp_api1rufat\",\n  \"url\": \"https://www.google.com/search?q={{ $json['company '] }}+{{ $json['market '] }}&hl=en&num=30\",\n  \"format\": \"raw\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        320,
+        960
+      ],
+      "id": "d19cebb2-024d-48cd-a2c9-16f8a8794243",
+      "name": "HTTP Request2",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "yGhCCQNc11hC2Few",
+          "name": "Bearer Auth account"
+        },
+        "httpHeaderAuth": {
+          "id": "iuIgYHWk14OHrM6h",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output \n          || $input.first().json.text \n          || $input.first().json.message \n          || '';\n\nlet parsed;\ntry {\n  // Markdown-dan təmizləyirik\n  const clean = raw\n    .replace(/^```json\\s*/i, '')\n    .replace(/^```\\s*/i, '')\n    .replace(/```\\s*$/i, '')\n    .trim();\n    \n  parsed = JSON.parse(clean);\n} catch(e) {\n  // JSON parse olmadıqda fallback yaradırıq\n  const sentMatch = raw.match(/[Ss]entiment\\s*[Ss]core[:\\s]*([+-]?\\d+)/);\n  const sentRaw = sentMatch ? parseInt(sentMatch[1]) : null;\n  \n  parsed = {\n    report: raw,\n    sentiment: sentRaw,\n    opportunities: [],\n    risks: [],\n    signals_count: 0\n  };\n}\n\n// Sentiment-i 0-100 arasına normalizasiya et\nif (parsed.sentiment !== null && parsed.sentiment !== undefined) {\n  let s = Number(parsed.sentiment);\n  \n  // Əgər -10 və +10 arasındadırsa (eski ölçek), 0-100-ə çevir\n  if (s >= -10 && s <= 10) {\n    s = Math.round((s + 10) * 5);\n  }\n  \n  // Hər halda 0-100 arasına məcburi sal\n  parsed.sentiment = Math.min(100, Math.max(0, Math.round(s)));\n} else {\n  // Sentiment heç tapılmadısa default 50 (neytral) ver\n  parsed.sentiment = 50;\n}\n\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        736
+      ],
+      "id": "0c575bac-3df6-4f22-a73e-a8b22f768717",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst company = (body.company || '').trim();\nconst market = (body.market || '').trim();\n\n// Boş sorğuları rədd et\nif (!company || !market) {\n  throw new Error('Company and market are required');\n}\n\n// Çox uzun inputları kəs (prompt injection qoruması)\nreturn [{\n  json: {\n    ...body,\n    company: company.slice(0, 100),\n    market: market.slice(0, 80),\n    context: (body.context || '').slice(0, 500),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        752
+      ],
+      "id": "263b8ff5-b025-4fe9-a397-17f7f895557c",
+      "name": "Code in JavaScript2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "99b75fbe-1854-40e4-8404-f46d29a58d81",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bdca60126bbd03d58e0e2cf0e502f8bb47bacebdad06cb6945575751043f1aac"
+  },
+  "id": "ND7tJkpP8vKt5LtMBy8Vo",
+  "tags": []
+}
