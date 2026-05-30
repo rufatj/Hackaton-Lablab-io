@@ -119,18 +119,3 @@ It returns a strict JSON object:
 }
 ```
 
----
-
-## Team
-
-| Name | Role |
-|---|---|
-| Rufat | Founder & CEO |
-| Amal Şəfiyev | Analytics Lead |
-| Şükür Şükürov | Lead Engineer |
-
----
-
-## Contact
-
-rufatcontact@gmail.com
