@@ -452,7 +452,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"zone\": \"serp_api1rufat\",\n  \"url\": \"https://www.google.com/search?q={{ $json['company '] }}+{{ $json['market '] }}&hl=en&num=2\",\n  \"format\": \"raw\"\n}",
+        "jsonBody": "={\n  \"zone\": \"serp_api",\n  \"url\": \"https://www.google.com/search?q={{ $json['company '] }}+{{ $json['market '] }}&hl=en&num=2\",\n  \"format\": \"raw\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
